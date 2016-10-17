@@ -1,3 +1,3 @@
-# TheProject
+# Multi Monitoring Temperature System for the elderly
 
-Edit me for project use
+Please find all code used for the project 
