@@ -1,0 +1,177 @@
+// (DEVICE 01)
+#include <VirtualWire.h>
+
+#include "DHT.h"
+
+#define DHTPIN 8                                                                                                                                                                                                                                                                                                                                                                                       // what pin we're connected to
+#define DHTTYPE DHT22   // DHT 22  (AM2302)
+
+#define txPowerPin 0  // PIN FOR TRANSMITTER
+
+
+// DEVICE NUMBER (01) 
+
+int dev_t = 0; // tens
+int dev_u = 1; // units 
+
+
+// PIN 5 (PWM 3) FOR SPEAKER
+
+int HIGHTEMP = 1;  // LED RED
+int MIDTEMP  = 4;   // LED YELLOW
+ int GOODTEMP = 7;  //LED GREEN
+
+
+// SET TEMPERATURE VARIABLES HERE
+
+// SET GOOD RANGE BETWEEN 18 - 24 Degrees
+int GoodTempLoVal = 18;
+int GoodTempHiVal = 24;
+
+// SET MIDDLE RANGE 15-17 & 25-26 Degrees
+int MidTempLoLoValue = 12;
+int MidTempLoHiValue = 17;
+
+int MidTempHiLoValue = 25;
+int MidTempHiHiValue = 26;
+
+// ALL OTHER RANGES ARE IN DANGER ZONE (Less than 16 and greater than 26)
+
+char stringtosend[6]; // SIZE OF MESSAGE TO SEND
+
+const int buzzerPin = 3; // BUZZER PIN
+
+// Variables
+
+int timer_count = 0; // Loop counter
+
+int temp = 0;
+int hum = 0; // For future purposes
+
+int dev_warn = 0;
+
+
+// int maxHum = 60;  // max Humidity to send
+int maxTemp = 40; 
+DHT dht(DHTPIN, DHTTYPE);
+
+
+
+//======================================================
+//======================================================
+//======================================================
+
+void setup(){
+  
+  dht.begin();                // Start temp sensor
+  vw_set_ptt_inverted(true);  // Required for DR3100
+  vw_set_tx_pin(0);  // VirtualWire transmit pin
+  vw_setup(4000);     // VirtualWire communication speed
+  
+  pinMode(HIGHTEMP, OUTPUT); 
+  pinMode(MIDTEMP, OUTPUT); 
+  pinMode(GOODTEMP, OUTPUT); 
+   pinMode(buzzerPin, OUTPUT);
+   
+   
+ 
+}
+
+//======================================================
+//======================================================
+//======================================================
+
+void loop()
+{
+   
+
+  // =============================================
+  // ======= READING TEMPERATURE SENSOR =========
+  // =============================================
+    
+  // Wait a few seconds between measurements.
+  delay(500);
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // hum = dht.readHumidity();
+  // Read temperature as Celsius
+  
+ temp = dht.readTemperature();
+  
+  
+ // GOOD
+  if (temp >= GoodTempLoVal && temp <= GoodTempHiVal) 
+{
+  // Flash Green LED
+  digitalWrite(GOODTEMP, HIGH);
+  dev_warn -- ;
+  
+  }
+  
+//OKAY
+if (temp >= MidTempLoLoValue && temp <= MidTempLoHiValue || temp >= MidTempHiLoValue && temp <= MidTempHiHiValue) 
+{
+  // Flash Yellow LED
+  digitalWrite(MIDTEMP, HIGH);
+  dev_warn -- ;
+}
+
+  if (dev_warn == -1){
+  dev_warn = 0;
+  }
+  
+//HIGH
+if (temp < MidTempLoLoValue || temp > MidTempHiHiValue){
+//if (temp <= 39){ 
+  // Flash Red LED
+  digitalWrite(HIGHTEMP, HIGH);
+  
+   dev_warn ++ ;
+   
+   if (dev_warn == 13) {
+     dev_warn = 12;
+   }
+}
+  
+  // =============================================
+  // ============== TRANSMITTING =================
+  // =============================================
+  
+ 
+// strcat(msg0, msg1);          // Adding/joining the two arrays
+  sprintf(stringtosend, "%d,%d,%d,%d", dev_t,dev_u, temp, hum);
+
+// following will be Blinking the LED repersenting the temperature and transmitting
+
+ // Flash a light to show transmitting
+  vw_send((uint8_t *)stringtosend, strlen(stringtosend)); // Sending the msg
+  vw_wait_tx();                         // Wait for tx to finish
+
+
+
+//========================================================
+//=============== OTHER STUFF ============================
+// =======================================================
+
+ delay (100) ; // to see the LED Flash
+ 
+ digitalWrite(GOODTEMP, LOW);
+ digitalWrite(MIDTEMP, LOW);
+ digitalWrite(HIGHTEMP, LOW);
+         
+  
+
+  // to count 27 - takes 62 seconds to do so.
+
+  if (dev_warn >= 5) {
+    
+    digitalWrite(buzzerPin, HIGH);
+      delay(100);
+  digitalWrite(buzzerPin, LOW);
+    }
+  
+    delay(6000);   // loop timer  
+    
+   
+    
+}  // END VOID LOOP
